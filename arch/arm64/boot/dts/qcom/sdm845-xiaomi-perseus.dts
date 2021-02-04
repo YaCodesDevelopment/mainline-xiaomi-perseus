@@ -47,8 +47,8 @@
 			height = <2340>;
 			stride = <(1080 * 4)>;
 			format = "a8r8g8b8";
+			stdout-path = "display0";
 		};
-		stdout-path = "serial0:115200n8";
 	};
 
 	reserved-memory {
@@ -477,8 +477,8 @@
 	zap-shader {
 		memory-region = <&gpu_mem>;
 		firmware-name = "qcom/sdm845/a630_zap.mbn";
+		status = "disabled";
 	};
-	status = "disabled";
 };
 
 &i2c10 {
