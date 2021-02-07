@@ -14,6 +14,8 @@
 / {
 	model = "Xiaomi Technologies, Inc.";
 	compatible = "qcom,sdm845-mtp", "qcom,sdm845";
+	qcom,msm-id = <321 0x20001>;
+	qcom,board-id = <99 0>;
 
 	aliases {
 		serial0 = &uart9;
