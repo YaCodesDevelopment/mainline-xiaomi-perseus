@@ -57,115 +57,98 @@
 		#address-cells = <0x02>;
 		#size-cells = <0x02>;
 		ranges;
-		phandle = <0x4c3>;
 
 		hyp_region@85700000 {
 			no-map;
 			reg = <0 0x85700000 0 0x600000>;
-			phandle = <0x4c4>;
 		};
 
 		xbl_region@85e00000 {
 			no-map;
 			reg = <0 0x85d00000 0 0x200000>;
-			phandle = <0x4c5>;
 		};
 
 		removed_region@85fc0000 {
 			no-map;
 			reg = <0 0x85fc0000 0 0x4940000>;
-			phandle = <0x4c6>;
 		};
 
 		qseecom_region@0x8ab00000 {
 			compatible = "shared-dma-pool";
 			no-map;
 			reg = <0 0x8ab00000 0 0x1400000>;
-			phandle = <0x1ac>;
 		};
 
 		camera_region@0x8bf00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8bf00000 0 0x500000>;
-			phandle = <0x1c0>;
 		};
 
 		ips_fw_region@0x8c400000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8c400000 0 0x10000>;
-			phandle = <0xe9>;
 		};
 
 		ipa_gsi_region@0x8c410000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8c410000 0 0x5000>;
-			phandle = <0x4c7>;
 		};
 
 		gpu_region@0x8c415000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8c415000 0 0x2000>;
-			phandle = <0x2a5>;
 		};
 
 		adsp_region@0x8c500000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8c500000 0 0x1e00000>;
-			phandle = <0xb2>;
 		};
 
 		wlan_fw_region@0x8e300000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8e300000 0 0x100000>;
-			phandle = <0x4c8>;
 		};
 
 		modem_region@0x8e400000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8e400000 0 0x7800000>;
-			phandle = <0xae>;
 		};
 
 		video_region@0x95c00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x95c00000 0 0x500000>;
-			phandle = <0xc1>;
 		};
 
 		cdsp_region@0x96100000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96100000 0 0x800000>;
-			phandle = <0xbc>;
 		};
 
 		mba_region@0x96900000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96900000 0 0x200000>;
-			phandle = <0xb1>;
 		};
 
 		slpi_region@0x96b00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96b00000 0 0x1400000>;
-			phandle = <0xb7>;
 		};
 
 		pil_spss_region@0x97f00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x97f00000 0 0x100000>;
-			phandle = <0xbb>;
 		};
 
 		adsp_region {
@@ -174,7 +157,6 @@
 			reusable;
 			alignment = <0 0x400000>;
 			size = <0 0x1000000>;
-			phandle = <0xbf>;
 		};
 
 		qseecom_ta_region {
@@ -183,7 +165,6 @@
 			reusable;
 			alignment = <0 0x400000>;
 			size = <0 0x1000000>;
-			phandle = <0x1ad>;
 		};
 
 		secure_sp_region {
@@ -192,13 +173,11 @@
 			reusable;
 			alignment = <0 0x400000>;
 			size = <0 0x800000>;
-			phandle = <0x1ae>;
 		};
 
 		fb_mem@9d400000 {
 			reg = <0 0x9d400000 0 0x2400000>;
 			label = "cont_splash_region";
-			phandle = <0x4c9>;
 		};
 
 		secure_display_region {
@@ -207,14 +186,12 @@
 			reusable;
 			alignment = <0 0x400000>;
 			size = <0 0x5c00000>;
-			phandle = <0x1af>;
 		};
 
 		mem_dump_region {
 			compatible = "shared-dma-pool";
 			reusable;
 			size = <0 0x2400000>;
-			phandle = <0x11b>;
 		};
 
 		linux,cma {
@@ -230,7 +207,6 @@
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0xaf000000 0 0x1000000>;
-			phandle = <0x5ab>;
 		};
 	};
 	
@@ -650,11 +626,10 @@
 };
 
 &gpu {
-	zap-shader {
-		memory-region = <&gpu_mem>;
-		firmware-name = "qcom/sdm845/a630_zap.mbn";
-		status = "disabled";
-	};
+	status = "disabled";
+}
+&dispcc {
+  status = "disabled";
 };
 
 &i2c10 {
@@ -726,38 +701,6 @@
 
 	vdda-phy-supply = <&vdda_usb1_ss_1p2>;
 	vdda-pll-supply = <&vdda_usb1_ss_core>;
-};
-
-&usb_2 {
-	status = "okay";
-};
-
-&usb_2_dwc3 {
-	/*
-	 * Though the USB block on SDM845 can support host, there's no vbus
-	 * signal for this port on MTP.  Thus (unless you have a non-compliant
-	 * hub that works without vbus) the only sensible thing is to force
-	 * peripheral mode.
-	 */
-	dr_mode = "peripheral";
-};
-
-&usb_2_hsphy {
-	status = "okay";
-
-	vdd-supply = <&vdda_usb2_ss_core>;
-	vdda-pll-supply = <&vdda_qusb_hs0_1p8>;
-	vdda-phy-dpdm-supply = <&vdda_qusb_hs0_3p1>;
-
-	qcom,imp-res-offset-value = <8>;
-	qcom,hstx-trim-value = <QUSB2_V2_HSTX_TRIM_22_8_MA>;
-};
-
-&usb_2_qmpphy {
-	status = "okay";
-
-	vdda-phy-supply = <&vdda_usb2_ss_1p2>;
-	vdda-pll-supply = <&vdda_usb2_ss_core>;
 };
 
 &wifi {
