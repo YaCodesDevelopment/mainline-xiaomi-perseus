@@ -34,45 +34,44 @@
 		#address-cells = <0x02>;
 		#size-cells = <0x02>;
 		ranges;
-		};
 
-		wlan_fw_region@0x8e300000 {
+		wlan_fw_region@8e300000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8e300000 0 0x100000>;
 		};
 
-		modem_region@0x8e400000 {
+		modem_region@8e400000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x8e400000 0 0x7800000>;
 		};
 
-		video_region@0x95c00000 {
+		video_region@95c00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x95c00000 0 0x500000>;
 		};
 
-		cdsp_region@0x96100000 {
+		cdsp_region@96100000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96100000 0 0x800000>;
 		};
 
-		mba_region@0x96900000 {
+		mba_region@96900000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96900000 0 0x200000>;
 		};
 
-		slpi_region@0x96b00000 {
+		slpi_region@96b00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96b00000 0 0x1400000>;
 		};
 
-		pil_spss_region@0x97f00000 {
+		pil_spss_region@97f00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x97f00000 0 0x100000>;
