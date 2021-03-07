@@ -19,7 +19,6 @@
 
 	aliases {
 		serial0 = &uart9;
-		display0 = &framebuffer0;
 	};
 
 	chosen {
@@ -29,84 +28,12 @@
 
 		/* Add "earlycon" intended to be used in combination with UART serial console */
 		bootargs = "earlycon";
-
-		/*
-		 * Define as "serial0:115200n8" instead of simplefb "display0" for UART console;
-		 * the tiny golden UART TX pad on the OnePlus 5 mainboard can be found in the
-		 * bottom left corner right above the black screw.
-		 */
-		stdout-path = "display0";
-
-		/*
-		 * HACK: Use display framebuffer setup by the UEFI XBL bootloader for simplefb.
-		 * the address was extracted from a bootloader dd image using the following:
-		 * $ strings xbl.img | grep 'Display Reserved'
-		 */
-		framebuffer0: framebuffer@9d400000 {
-			compatible = "simple-framebuffer";
-			reg = <0 0x9d400000 0 (1080 * 2340 * 4)>;
-			width = <1080>;
-			height = <2340>;
-			stride = <(1080 * 4)>;
-			format = "a8r8g8b8";
-			stdout-path = "display0";
-		};
 	};
 
 	reserved-memory {
 		#address-cells = <0x02>;
 		#size-cells = <0x02>;
 		ranges;
-
-		hyp_region@85700000 {
-			no-map;
-			reg = <0 0x85700000 0 0x600000>;
-		};
-
-		xbl_region@85e00000 {
-			no-map;
-			reg = <0 0x85d00000 0 0x200000>;
-		};
-
-		removed_region@85fc0000 {
-			no-map;
-			reg = <0 0x85fc0000 0 0x4940000>;
-		};
-
-		qseecom_region@0x8ab00000 {
-			compatible = "shared-dma-pool";
-			no-map;
-			reg = <0 0x8ab00000 0 0x1400000>;
-		};
-
-		camera_region@0x8bf00000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x8bf00000 0 0x500000>;
-		};
-
-		ips_fw_region@0x8c400000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x8c400000 0 0x10000>;
-		};
-
-		ipa_gsi_region@0x8c410000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x8c410000 0 0x5000>;
-		};
-
-		gpu_region@0x8c415000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x8c415000 0 0x2000>;
-		};
-
-		adsp_region@0x8c500000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x8c500000 0 0x1e00000>;
 		};
 
 		wlan_fw_region@0x8e300000 {
@@ -173,11 +100,6 @@
 			reusable;
 			alignment = <0 0x400000>;
 			size = <0 0x800000>;
-		};
-
-		fb_mem@9d400000 {
-			reg = <0 0x9d400000 0 0x2400000>;
-			label = "cont_splash_region";
 		};
 
 		secure_display_region {
