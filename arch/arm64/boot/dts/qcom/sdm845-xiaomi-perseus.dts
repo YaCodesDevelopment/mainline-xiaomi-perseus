@@ -738,45 +738,4 @@
 
 &tlmm {
 	gpio-reserved-ranges = <0 4>, <81 4>;
-
-	sdc2_clk: sdc2-clk {
-		pinconf {
-			pins = "sdc2_clk";
-			bias-disable;
-
-			/*
-			 * It seems that mmc_test reports errors if drive
-			 * strength is not 16 on clk, cmd, and data pins.
-			 */
-			drive-strength = <16>;
-		};
-	};
-
-	/*sdc2_cmd: sdc2-cmd {
-	*	pinconf {
-	*		pins = "sdc2_cmd";
-	*		bias-pull-up;
-	*		drive-strength = <16>;
-	*	};
-	*};
-	*
-	*sdc2_data: sdc2-data {
-	*	pinconf {
-	*		pins = "sdc2_data";
-	*		bias-pull-up;
-	*		drive-strength = <16>;
-	*	};
-	*};
-	*
-	*sd_card_det_n: sd-card-det-n {
-	*	pinmux {
-	*		pins = "gpio126";
-	*		function = "gpio";
-	*	};
-	*
-	*	pinconf {
-	*		pins = "gpio126";
-	*		bias-pull-up;
-	*	};
-	};*/
 };
