@@ -627,7 +627,8 @@
 
 &gpu {
 	status = "disabled";
-}
+};
+
 &dispcc {
   status = "disabled";
 };
