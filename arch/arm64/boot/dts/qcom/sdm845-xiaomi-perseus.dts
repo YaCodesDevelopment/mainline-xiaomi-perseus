@@ -31,10 +31,10 @@
 	};
 
 	reserved-memory {
-		#address-cells = <0x02>;
-		#size-cells = <0x02>;
+		#address-cells = <2>;
+		#size-cells = <2>;
 		ranges;
-
+		
 		wlan_fw_region@8e300000 {
 			compatible = "removed-dma-pool";
 			no-map;
@@ -53,81 +53,36 @@
 			reg = <0 0x95c00000 0 0x500000>;
 		};
 
+		/*/delete-node/memory@95d00000;*/
+		
 		cdsp_region@96100000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96100000 0 0x800000>;
 		};
 
+		/*/delete-node/memory@96500000;*/
+		
 		mba_region@96900000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96900000 0 0x200000>;
 		};
 
+		/delete-node/memory@96700000;
+		
 		slpi_region@96b00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x96b00000 0 0x1400000>;
 		};
 
+		/delete-node/memory@97b00000;
+		
 		pil_spss_region@97f00000 {
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0x97f00000 0 0x100000>;
-		};
-
-		adsp_region {
-			compatible = "shared-dma-pool";
-			alloc-ranges = <0 0 0 0xffffffff>;
-			reusable;
-			alignment = <0 0x400000>;
-			size = <0 0x1000000>;
-		};
-
-		qseecom_ta_region {
-			compatible = "shared-dma-pool";
-			alloc-ranges = <0 0 0 0xffffffff>;
-			reusable;
-			alignment = <0 0x400000>;
-			size = <0 0x1000000>;
-		};
-
-		secure_sp_region {
-			compatible = "shared-dma-pool";
-			alloc-ranges = <0 0 0 0xffffffff>;
-			reusable;
-			alignment = <0 0x400000>;
-			size = <0 0x800000>;
-		};
-
-		secure_display_region {
-			compatible = "shared-dma-pool";
-			alloc-ranges = <0 0 0 0xffffffff>;
-			reusable;
-			alignment = <0 0x400000>;
-			size = <0 0x5c00000>;
-		};
-
-		mem_dump_region {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0 0x2400000>;
-		};
-
-		linux,cma {
-			compatible = "shared-dma-pool";
-			alloc-ranges = <0 0 0 0xffffffff>;
-			reusable;
-			alignment = <0 0x400000>;
-			size = <0 0x2000000>;
-			linux,cma-default;
-		};
-
-		ramdump_fb_region@af000000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0xaf000000 0 0x1000000>;
 		};
 	};
 	
