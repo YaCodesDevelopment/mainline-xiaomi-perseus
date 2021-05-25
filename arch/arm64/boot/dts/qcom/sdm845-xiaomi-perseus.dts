@@ -1,94 +1,98 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * SDM845 MTP board device tree source
+ * SDM845 OnePlus 6(T) (enchilada / fajita) common device tree source
  *
- * Copyright (c) 2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2020, The Linux Foundation. All rights reserved.
  */
 
 /dts-v1/;
 
+#include <dt-bindings/dma/qcom-gpi.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
+
 #include "sdm845.dtsi"
 #include "pm8998.dtsi"
 #include "pmi8998.dtsi"
 
+/delete-node/ &rmtfs_mem;
+
 / {
-	model = "Xiaomi Technologies, Inc.";
-	compatible = "qcom,sdm845-mtp", "qcom,sdm845";
-	qcom,msm-id = <321 0x20001>;
-	qcom,board-id = <99 0>;
-
 	aliases {
-		serial0 = &uart9;
+		hsuart0 = &uart6;
 	};
+//TODO Fix Volume Buttons
+/*	gpio-keys {
+		compatible = "gpio-keys";
+		label = "Volume keys";
+		autorepeat;
 
-	chosen {
-			#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
+		pinctrl-names = "default";
+		pinctrl-0 = <&volume_down_gpio &volume_up_gpio>;
 
-		/* Add "earlycon" intended to be used in combination with UART serial console */
-		bootargs = "earlycon";
+		vol-down {
+			label = "Volume down";
+			linux,code = <KEY_VOLUMEDOWN>;
+			gpios = <&pm8998_gpio 5 GPIO_ACTIVE_LOW>;
+			debounce-interval = <15>;
+		};
+
+		vol-up {
+			label = "Volume up";
+			linux,code = <KEY_VOLUMEUP>;
+			gpios = <&pm8998_gpio 6 GPIO_ACTIVE_LOW>;
+			debounce-interval = <15>;
+		};
 	};
-
+*/
 	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-		
-		wlan_fw_region@8e300000 {
-			compatible = "removed-dma-pool";
+		/* The rmtfs_mem needs to be guarded due to "XPU limitations"
+		 * it is otherwise possible for an allocation adjacent to the
+		 * rmtfs_mem region to trigger an XPU violation, causing a crash.
+		 */
+		rmtfs_lower_guard: memory@f5b00000 {
 			no-map;
-			reg = <0 0x8e300000 0 0x100000>;
+			reg = <0 0xf5b00000 0 0x1000>;
+		};
+		/*
+		 * The rmtfs memory region in downstream is 'dynamically allocated'
+		 * but given the same address every time. Hard code it as this address is
+		 * where the modem firmware expects it to be.
+		 */
+		rmtfs_mem: memory@f5b01000 {
+			compatible = "qcom,rmtfs-mem";
+			reg = <0 0xf5b01000 0 0x200000>;
+			no-map;
+
+			qcom,client-id = <1>;
+			qcom,vmid = <15>;
+		};
+		rmtfs_upper_guard: memory@f5d01000 {
+			no-map;
+			reg = <0 0xf5d01000 0 0x2000>;
 		};
 
-		modem_region@8e400000 {
-			compatible = "removed-dma-pool";
+		/*
+		 * It seems like reserving the old rmtfs_mem region is also needed to prevent
+		 * random crashes which are most likely modem related, more testing needed.
+		 */
+		removed_region: memory@88f00000 {
 			no-map;
-			reg = <0 0x8e400000 0 0x7800000>;
+			reg = <0 0x88f00000 0 0x200000>;
 		};
 
-		video_region@95c00000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x95c00000 0 0x500000>;
-		};
-
-		/*/delete-node/memory@95d00000;*/
-		
-		cdsp_region@96100000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x96100000 0 0x800000>;
-		};
-
-		/*/delete-node/memory@96500000;*/
-		
-		mba_region@96900000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x96900000 0 0x200000>;
-		};
-
-		/delete-node/memory@96700000;
-		
-		slpi_region@96b00000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x96b00000 0 0x1400000>;
-		};
-
-		/delete-node/memory@97b00000;
-		
-		pil_spss_region@97f00000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0x97f00000 0 0x100000>;
+		ramoops: ramoops@ac300000 {
+			compatible = "ramoops";
+			reg = <0 0xac300000 0 0x400000>;
+			record-size = <0x40000>;
+			console-size = <0x40000>;
+			ftrace-size = <0x40000>;
+			pmsg-size = <0x200000>;
+			devinfo-size = <0x1000>;
+			ecc-size = <16>;
 		};
 	};
-	
-	
 
 	vph_pwr: vph-pwr-regulator {
 		compatible = "regulator-fixed";
@@ -113,11 +117,28 @@
 
 		vin-supply = <&vph_pwr>;
 	};
+
+	/*
+	 * The touchscreen regulator seems to be controlled somehow by a gpio.
+	 * Model it as a fixed regulator and keep it on. Without schematics we
+	 * don't know how this is actually wired up...
+	 */
+	ts_1p8_supply: ts-1p8-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "ts_1p8_supply";
+
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+
+		gpio = <&tlmm 88 0>;
+		enable-active-high;
+		regulator-boot-on;
+	};
 };
 
 &adsp_pas {
 	status = "okay";
-	firmware-name = "qcom/sdm845/adsp.mdt";
+	firmware-name = "qcom/sdm845/perseus/adsp.mbn";
 };
 
 &apps_rsc {
@@ -153,11 +174,6 @@
 		vdd-l26-supply = <&vreg_s3a_1p35>;
 		vin-lvs-1-2-supply = <&vreg_s4a_1p8>;
 
-		vreg_s2a_1p125: smps2 {
-			regulator-min-microvolt = <1100000>;
-			regulator-max-microvolt = <1100000>;
-		};
-
 		vreg_s3a_1p35: smps3 {
 			regulator-min-microvolt = <1352000>;
 			regulator-max-microvolt = <1352000>;
@@ -173,31 +189,16 @@
 			regulator-max-microvolt = <1028000>;
 		};
 
-		vdd_qusb_hs0:
-		vdda_hp_pcie_core:
-		vdda_mipi_csi0_0p9:
-		vdda_mipi_csi1_0p9:
-		vdda_mipi_csi2_0p9:
 		vdda_mipi_dsi0_pll:
-		vdda_mipi_dsi1_pll:
 		vdda_qlink_lv:
-		vdda_qlink_lv_ck:
-		vdda_qrefs_0p875:
-		vdda_pcie_core:
-		vdda_pll_cc_ebi01:
-		vdda_pll_cc_ebi23:
-		vdda_sp_sensor:
 		vdda_ufs1_core:
-		vdda_ufs2_core:
 		vdda_usb1_ss_core:
-		vdda_usb2_ss_core:
 		vreg_l1a_0p875: ldo1 {
 			regulator-min-microvolt = <880000>;
 			regulator-max-microvolt = <880000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		vddpx_10:
 		vreg_l2a_1p2: ldo2 {
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1200000>;
@@ -205,25 +206,9 @@
 			regulator-always-on;
 		};
 
-		vreg_l3a_1p0: ldo3 {
-			regulator-min-microvolt = <1000000>;
-			regulator-max-microvolt = <1000000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vdd_wcss_cx:
-		vdd_wcss_mx:
-		vdda_wcss_pll:
 		vreg_l5a_0p8: ldo5 {
 			regulator-min-microvolt = <800000>;
 			regulator-max-microvolt = <800000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vddpx_13:
-		vreg_l6a_1p8: ldo6 {
-			regulator-min-microvolt = <1856000>;
-			regulator-max-microvolt = <1856000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
@@ -233,47 +218,10 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		vreg_l8a_1p2: ldo8 {
-			regulator-min-microvolt = <1200000>;
-			regulator-max-microvolt = <1248000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l9a_1p8: ldo9 {
-			regulator-min-microvolt = <1704000>;
-			regulator-max-microvolt = <2928000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l10a_1p8: ldo10 {
-			regulator-min-microvolt = <1704000>;
-			regulator-max-microvolt = <2928000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l11a_1p0: ldo11 {
-			regulator-min-microvolt = <1000000>;
-			regulator-max-microvolt = <1048000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vdd_qfprom:
-		vdd_qfprom_sp:
-		vdda_apc1_cs_1p8:
-		vdda_gfx_cs_1p8:
-		vdda_qrefs_1p8:
 		vdda_qusb_hs0_1p8:
-		vddpx_11:
 		vreg_l12a_1p8: ldo12 {
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vddpx_2:
-		vreg_l13a_2p95: ldo13 {
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <2960000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
@@ -281,18 +229,7 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <2000000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l15a_1p8: ldo15 {
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <1800000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l16a_2p7: ldo16 {
-			regulator-min-microvolt = <2704000>;
-			regulator-max-microvolt = <2704000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-always-on;
 		};
 
 		vreg_l17a_1p3: ldo17 {
@@ -301,39 +238,9 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		vreg_l18a_2p7: ldo18 {
-			regulator-min-microvolt = <2704000>;
-			regulator-max-microvolt = <2960000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l19a_3p0: ldo19 {
-			regulator-min-microvolt = <2856000>;
-			regulator-max-microvolt = <3104000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
 		vreg_l20a_2p95: ldo20 {
 			regulator-min-microvolt = <2704000>;
 			regulator-max-microvolt = <2960000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l21a_2p95: ldo21 {
-			regulator-min-microvolt = <2704000>;
-			regulator-max-microvolt = <2960000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l22a_2p85: ldo22 {
-			regulator-min-microvolt = <2864000>;
-			regulator-max-microvolt = <3312000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l23a_3p3: ldo23 {
-			regulator-min-microvolt = <3000000>;
-			regulator-max-microvolt = <3312000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
@@ -345,24 +252,13 @@
 		};
 
 		vreg_l25a_3p3: ldo25 {
-			regulator-min-microvolt = <3000000>;
+			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3312000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		vdda_hp_pcie_1p2:
-		vdda_hv_ebi0:
-		vdda_hv_ebi1:
-		vdda_hv_ebi2:
-		vdda_hv_ebi3:
-		vdda_mipi_csi_1p25:
 		vdda_mipi_dsi0_1p2:
-		vdda_mipi_dsi1_1p2:
-		vdda_pcie_1p2:
 		vdda_ufs1_1p2:
-		vdda_ufs2_1p2:
-		vdda_usb1_ss_1p2:
-		vdda_usb2_ss_1p2:
 		vreg_l26a_1p2: ldo26 {
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1200000>;
@@ -373,16 +269,6 @@
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_lvs1a_1p8: lvs1 {
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <1800000>;
-		};
-
-		vreg_lvs2a_1p8: lvs2 {
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <1800000>;
 		};
 	};
 
@@ -416,187 +302,177 @@
 	};
 };
 
-/*&cdsp_pas {
-*	status = "okay";
-*	firmware-name = "qcom/sdm845/cdsp.mdt";
-*};
-*
-*&dsi0 {
-*	status = "okay";
-*	vdda-supply = <&vdda_mipi_dsi0_1p2>;
-*
-*	qcom,dual-dsi-mode;
-*	qcom,master-dsi;
-*
-*	#address-cells = <1>;
-*	#size-cells = <0>;
-*
-*	ports {
-*		port@1 {
-*			endpoint {
-*				remote-endpoint = <&truly_in_0>;
-*				data-lanes = <0 1 2 3>;
-*			};
-*		};
-*	};
-*
-*	panel@0 {
-*		compatible = "truly,nt35597-2K-display";
-*		reg = <0>;
-*		vdda-supply = <&vreg_l14a_1p88>;
-*
-*		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
-*		mode-gpios = <&tlmm 52 GPIO_ACTIVE_HIGH>;
-*
-*		ports {
-*			#address-cells = <1>;
-*			#size-cells = <0>;
-*
-*			port@0 {
-*				reg = <0>;
-*				truly_in_0: endpoint {
-*					remote-endpoint = <&dsi0_out>;
-*				};
-*			};
-*
-*			port@1 {
-*				reg = <1>;
-*				truly_in_1: endpoint {
-*					remote-endpoint = <&dsi1_out>;
-*				};
-*			};
-*		};
-*	};
-*};
-*
-*&dsi0_phy {
-*	status = "okay";
-*	vdds-supply = <&vdda_mipi_dsi0_pll>;
-*};
-*
-*&dsi1 {
-*	status = "okay";
-*	vdda-supply = <&vdda_mipi_dsi1_1p2>;
-*
-*	qcom,dual-dsi-mode;
-*
-*	ports {
-*		port@1 {
-*			endpoint {
-*				remote-endpoint = <&truly_in_1>;
-*				data-lanes = <0 1 2 3>;
-*			};
-*		};
-*	};
-*};
-*
-*&dsi1_phy {
-*	status = "okay";
-*	vdds-supply = <&vdda_mipi_dsi1_pll>;
-};*/
+&cdsp_pas {
+	status = "okay";
+	firmware-name = "qcom/sdm845/perseus/cdsp.mbn";
+};
+
+&dsi0 {
+	status = "okay";
+	vdda-supply = <&vdda_mipi_dsi0_1p2>;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/*
+	 * Both devices use different panels but all other properties
+	 * are common. Compatible line is declared in device dts.
+	 */
+	display_panel: panel@0 {
+		status = "disabled";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		vddio-supply = <&vreg_l14a_1p88>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&panel_reset_pins &panel_te_pin &panel_esd_pin>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&dsi0_out {
+	remote-endpoint = <&panel_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&dsi0_phy {
+	status = "okay";
+	vdds-supply = <&vdda_mipi_dsi0_pll>;
+};
 
 &gcc {
 	protected-clocks = <GCC_QSPI_CORE_CLK>,
-			   <GCC_QSPI_CORE_CLK_SRC>,
-			   <GCC_QSPI_CNOC_PERIPH_AHB_CLK>,
-			   <GCC_LPASS_Q6_AXI_CLK>,
-			   <GCC_LPASS_SWAY_CLK>;
+				<GCC_QSPI_CORE_CLK_SRC>,
+				<GCC_QSPI_CNOC_PERIPH_AHB_CLK>,
+				<GCC_LPASS_Q6_AXI_CLK>,
+				<GCC_LPASS_SWAY_CLK>;
 };
 
 &gpu {
-	status = "disabled";
+	zap-shader {
+		memory-region = <&gpu_mem>;
+		firmware-name = "qcom/sdm845/perseus/a630_zap.mbn";
+	};
 };
-
-&dispcc {
-  status = "disabled";
-};
-
-&i2c10 {
+/*
+&i2c12 {
+	#dma-cells = <3>;
 	status = "okay";
 	clock-frequency = <400000>;
+
+	dmas =  <&gpi_dma1 0 4 QCOM_GPI_I2C>,
+			<&gpi_dma1 1 4 QCOM_GPI_I2C>;
+	dma-names = "tx", "rx";
+
+	synaptics-rmi4-i2c@20 {
+		compatible = "syna,rmi4-i2c";
+		reg = <0x20>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		interrupts-extended = <&tlmm 125 IRQ_TYPE_EDGE_FALLING>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_default_pins>;
+
+		vdd-supply = <&vreg_l28a_3p0>;
+		vio-supply = <&ts_1p8_supply>;
+
+		syna,reset-delay-ms = <200>;
+		syna,startup-delay-ms = <200>;
+
+		rmi4-f01@1 {
+			reg = <0x01>;
+			syna,nosleep-mode = <1>;
+		};
+
+		rmi4_f12: rmi4-f12@12 {
+			reg = <0x12>;
+			touchscreen-x-mm = <68>;
+			touchscreen-y-mm = <144>;
+			syna,sensor-type = <1>;
+			syna,rezero-wait-ms = <200>;
+		};
+	};
+};
+*/
+&ipa {
+	status = "okay";
+	memory-region = <&ipa_fw_mem>;
 };
 
-/*&mdss {
-*	status = "okay";
-*};
-*
-*&mdss_mdp {
-*	status = "okay";
-*};
-*
-*&mss_pil {
-*	status = "okay";
-*	firmware-name = "qcom/sdm845/mba.mbn", "qcom/sdm845/*modem.mbn";
-};*/
+&mdss {
+	status = "okay";
+};
+
+&mdss_mdp {
+	status = "okay";
+};
+
+/* Modem/wifi*/
+&mss_pil {
+	status = "okay";
+	firmware-name = "qcom/sdm845/perseus/mba.mbn", "qcom/sdm845/perseus/modem.mbn";
+};
+
+&pm8998_gpio {
+	volume_down_gpio: pm8998_gpio5 {
+		pinconf {
+			pins = "gpio5";
+			function = "normal";
+			input-enable;
+			bias-pull-up;
+			qcom,drive-strength = <0>;
+		};
+	};
+
+	volume_up_gpio: pm8998_gpio6 {
+		pinconf {
+			pins = "gpio6";
+			function = "normal";
+			input-enable;
+			bias-pull-up;
+			qcom,drive-strength = <0>;
+		};
+	};
+};
+
+&pmi8998_fg {
+	status = "okay";
+
+	qcom,max-voltage-uv = <4400000>;
+	qcom,min-voltage-uv = <3700000>;
+};
+
+&pmi8998_haptics {
+	status = "okay";
+	qcom,wave-play-rate-us = <4255>;
+};
 
 &qupv3_id_1 {
 	status = "okay";
 };
 
-&uart9 {
+&qupv3_id_0 {
 	status = "okay";
 };
-
-&ufs_mem_hc {
-	status = "okay";
-
-	reset-gpios = <&tlmm 150 GPIO_ACTIVE_LOW>;
-
-	vcc-supply = <&vreg_l20a_2p95>;
-	vcc-max-microamp = <600000>;
+/*
+&qup_i2c12_default {
+	mux {
+		pins = "gpio49", "gpio50";
+		function = "qup12";
+		drive-strength = <2>;
+		bias-disable;
+	};
 };
-
-&ufs_mem_phy {
-	status = "okay";
-
-	vdda-phy-supply = <&vdda_ufs1_core>;
-	vdda-pll-supply = <&vdda_ufs1_1p2>;
-};
-
-&usb_1 {
-	status = "okay";
-};
-
-&usb_1_dwc3 {
-	/* Until we have Type C hooked up we'll force this as peripheral. */
-	/* Fixme: Pixel 3 XL: set to peripheral since we only have one port */
-	dr_mode = "peripheral";
-	maximum-speed = "high-speed";
-	/* Crosshatch hack: disable USB-3 phy for now. I don't have this enabled in Kconfig yet. */
-	phys = <&usb_1_hsphy>;
-	phy-names = "usb2-phy";
-};
-
-&usb_1_hsphy {
-	status = "okay";
-
-	vdd-supply = <&vreg_l1a_0p875>;
-	vdda-pll-supply = <&vreg_l12a_1p8>;
-	vdda-phy-dpdm-supply = <&vreg_l24a_3p075>;
-
-	qcom,imp-res-offset-value = <8>;
-	qcom,hstx-trim-value = <QUSB2_V2_HSTX_TRIM_21_6_MA>;
-	qcom,preemphasis-level = <QUSB2_V2_PREEMPHASIS_5_PERCENT>;
-	qcom,preemphasis-width = <QUSB2_V2_PREEMPHASIS_WIDTH_HALF_BIT>;
-};
-
-&usb_1_qmpphy {
-	status = "okay";
-
-	vdda-phy-supply = <&vreg_l26a_1p2>;
-	vdda-pll-supply = <&vreg_l1a_0p875>;
-};
-
-&wifi {
-	status = "okay";
-	vdd-0.8-cx-mx-supply = <&vreg_l5a_0p8>;
-	vdd-1.8-xo-supply = <&vreg_l7a_1p8>;
-	vdd-1.3-rfa-supply = <&vreg_l17a_1p3>;
-	vdd-3.3-ch0-supply = <&vreg_l25a_3p3>;
-};
-
-/* PINCTRL - additions to nodes defined in sdm845.dtsi */
-
+*/
 &qup_i2c10_default {
 	pinconf {
 		pins = "gpio55", "gpio56";
@@ -619,6 +495,163 @@
 	};
 };
 
+/*
+ * Prevent garbage data on bluetooth UART lines
+ */
+&qup_uart6_default {
+	pinmux {
+		pins = "gpio45", "gpio46", "gpio47", "gpio48";
+		function = "qup6";
+	};
+
+	cts {
+		pins = "gpio45";
+		bias-pull-down;
+	};
+
+	rts-tx {
+		pins = "gpio46", "gpio47";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	rx {
+		pins = "gpio48";
+		bias-pull-up;
+	};
+};
+
+&uart6 {
+	status = "okay";
+
+	bluetooth {
+		compatible = "qcom,wcn3990-bt";
+
+		/*
+		 * This path is relative to the qca/
+		 * subdir under lib/firmware.
+		 */
+		firmware-name = "perseus/crnv21.bin";
+
+		vddio-supply = <&vreg_s4a_1p8>;
+		vddxo-supply = <&vreg_l7a_1p8>;
+		vddrf-supply = <&vreg_l17a_1p3>;
+		vddch0-supply = <&vreg_l25a_3p3>;
+		max-speed = <3200000>;
+	};
+};
+
+&ufs_mem_hc {
+	status = "okay";
+
+	reset-gpios = <&tlmm 150 GPIO_ACTIVE_LOW>;
+
+	vcc-supply = <&vreg_l20a_2p95>;
+	vcc-max-microamp = <600000>;
+};
+
+&ufs_mem_phy {
+	status = "okay";
+
+	vdda-phy-supply = <&vdda_ufs1_core>;
+	vdda-pll-supply = <&vdda_ufs1_1p2>;
+};
+
+&usb_1 {
+	status = "okay";
+
+	/*
+	 * disable USB3 clock requirement as the device only supports
+	 * USB2.
+	 */
+	qcom,select-utmi-as-pipe-clk;
+};
+
+&usb_1_dwc3 {
+	/*
+	 * We don't have the capability to switch modes yet.
+	 */
+	dr_mode = "peripheral";
+
+	/* fastest mode for USB 2 */
+	maximum-speed = "high-speed";
+
+	/* Remove USB3 phy as it's unused on this device. */
+	phys = <&usb_1_hsphy>;
+	phy-names = "usb2-phy";
+};
+
+&usb_1_hsphy {
+	status = "okay";
+
+	vdd-supply = <&vdda_usb1_ss_core>;
+	vdda-pll-supply = <&vdda_qusb_hs0_1p8>;
+	vdda-phy-dpdm-supply = <&vdda_qusb_hs0_3p1>;
+
+	qcom,imp-res-offset-value = <8>;
+	qcom,hstx-trim-value = <QUSB2_V2_HSTX_TRIM_21_6_MA>;
+	qcom,preemphasis-level = <QUSB2_V2_PREEMPHASIS_5_PERCENT>;
+	qcom,preemphasis-width = <QUSB2_V2_PREEMPHASIS_WIDTH_HALF_BIT>;
+};
+
 &tlmm {
 	gpio-reserved-ranges = <0 4>, <81 4>;
+
+	tri_state_key_default: tri_state_key_default {
+		mux {
+			pins = "gpio40", "gpio42", "gpio26";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
+
+	ts_default_pins: ts-int {
+		mux {
+			pins = "gpio99", "gpio125";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+	};
+
+	panel_reset_pins: panel-reset {
+		mux {
+			pins = "gpio6", "gpio25", "gpio26";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+
+	panel_te_pin: panel-te {
+		mux {
+			pins = "gpio10";
+			function = "mdp_vsync";
+			drive-strength = <2>;
+			bias-disable;
+			input-enable;
+		};
+	};
+
+	panel_esd_pin: panel-esd {
+		mux {
+			pins = "gpio30";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+		};
+	};
 };
+
+&wifi {
+	status = "okay";
+	vdd-0.8-cx-mx-supply = <&vreg_l5a_0p8>;
+	vdd-1.8-xo-supply = <&vreg_l7a_1p8>;
+	vdd-1.3-rfa-supply = <&vreg_l17a_1p3>;
+	vdd-3.3-ch0-supply = <&vreg_l25a_3p3>;
+
+	qcom,snoc-host-cap-8bit-quirk;
+};
+
